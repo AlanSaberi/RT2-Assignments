@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>scripts.node_c &#8212; rt2_Amir_assignment 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=0868e8a2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=eafc0fe6" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=359c27e9"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for scripts.node_c</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="kn">import</span> <span class="nn">rospy</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="c1">#from assignment_2_2023.msg import msga</span>
+<span class="kn">from</span> <span class="nn">assignment_2_2023.srv</span> <span class="kn">import</span> <span class="n">Ave_pos_vel</span><span class="p">,</span> <span class="n">Ave_pos_velResponse</span>
+
+<span class="c1"># Global variables to store the calculated values</span>
+<span class="n">average_velocity</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">distance</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="c1"># Function to calculate distance</span>
+<div class="viewcode-block" id="calculate_distance"><a class="viewcode-back" href="../../index.html#scripts.node_c.calculate_distance">[docs]</a><span class="k">def</span> <span class="nf">calculate_distance</span><span class="p">(</span><span class="n">target_pos_x</span><span class="p">,</span> <span class="n">target_pos_y</span><span class="p">,</span> <span class="n">current_pos_x</span><span class="p">,</span> <span class="n">current_pos_y</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the Euclidean distance between the target position and the current position.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        target_pos_x (float): X-coordinate of the target position.</span>
+<span class="sd">        target_pos_y (float): Y-coordinate of the target position.</span>
+<span class="sd">        current_pos_x (float): X-coordinate of the current position.</span>
+<span class="sd">        current_pos_y (float): Y-coordinate of the current position.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: Euclidean distance between the two positions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">target_pos_x</span> <span class="o">-</span> <span class="n">current_pos_x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">target_pos_y</span> <span class="o">-</span> <span class="n">current_pos_y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span></div>
+
+<span class="c1"># Function to calculate average velocity</span>
+<div class="viewcode-block" id="calculate_average_velocity"><a class="viewcode-back" href="../../index.html#scripts.node_c.calculate_average_velocity">[docs]</a><span class="k">def</span> <span class="nf">calculate_average_velocity</span><span class="p">(</span><span class="n">recent_velocity_readings</span><span class="p">,</span> <span class="n">window_size</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the average velocity based on recent velocity readings.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        recent_velocity_readings (list of float): List of recent velocity readings.</span>
+<span class="sd">        window_size (int): Size of the window for averaging.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: Average velocity.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">recent_velocity_readings</span><span class="p">)</span> <span class="o">/</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">recent_velocity_readings</span><span class="p">),</span> <span class="n">window_size</span><span class="p">)</span></div>
+
+<span class="c1"># Function to update global values</span>
+<div class="viewcode-block" id="update_global_values"><a class="viewcode-back" href="../../index.html#scripts.node_c.update_global_values">[docs]</a><span class="k">def</span> <span class="nf">update_global_values</span><span class="p">(</span><span class="n">calculated_distance</span><span class="p">,</span> <span class="n">calculated_avg_velocity</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Updates the global variables for distance and average velocity.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        calculated_distance (float): Calculated distance.</span>
+<span class="sd">        calculated_avg_velocity (float): Calculated average velocity.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">distance</span><span class="p">,</span> <span class="n">average_velocity</span>
+    <span class="n">distance</span> <span class="o">=</span> <span class="n">calculated_distance</span>
+    <span class="n">average_velocity</span> <span class="o">=</span> <span class="n">calculated_avg_velocity</span></div>
+
+<span class="c1"># Function to process incoming messages</span>
+<div class="viewcode-block" id="calculate_distance_and_average_velocity"><a class="viewcode-back" href="../../index.html#scripts.node_c.calculate_distance_and_average_velocity">[docs]</a><span class="k">def</span> <span class="nf">calculate_distance_and_average_velocity</span><span class="p">(</span><span class="n">msg</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Processes incoming messages to calculate distance and average velocity.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        msg (assignment_2_2023.msg.msga): Message containing position and velocity data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">target_pos_x</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="s1">&#39;/des_pos_x&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">target_pos_y</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="s1">&#39;/des_pos_y&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">current_pos_x</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">positionx</span>
+    <span class="n">current_pos_y</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">positiony</span>
+
+    <span class="n">calculated_distance</span> <span class="o">=</span> <span class="n">calculate_distance</span><span class="p">(</span><span class="n">target_pos_x</span><span class="p">,</span> <span class="n">target_pos_y</span><span class="p">,</span> <span class="n">current_pos_x</span><span class="p">,</span> <span class="n">current_pos_y</span><span class="p">)</span>
+
+    <span class="n">velocity_window_size</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="s1">&#39;/window_size&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">recent_velocity_readings</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">velocityx</span><span class="p">[</span><span class="o">-</span><span class="n">velocity_window_size</span><span class="p">:]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">velocityx</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="p">[</span><span class="n">msg</span><span class="o">.</span><span class="n">velocityx</span><span class="p">]</span>
+    <span class="n">calculated_avg_velocity</span> <span class="o">=</span> <span class="n">calculate_average_velocity</span><span class="p">(</span><span class="n">recent_velocity_readings</span><span class="p">,</span> <span class="n">velocity_window_size</span><span class="p">)</span>
+
+    <span class="n">update_global_values</span><span class="p">(</span><span class="n">calculated_distance</span><span class="p">,</span> <span class="n">calculated_avg_velocity</span><span class="p">)</span></div>
+
+<span class="c1"># Function to handle service requests</span>
+<div class="viewcode-block" id="handle_service_request"><a class="viewcode-back" href="../../index.html#scripts.node_c.handle_service_request">[docs]</a><span class="k">def</span> <span class="nf">handle_service_request</span><span class="p">(</span><span class="n">_</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Handles service requests and returns the calculated distance and average velocity.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        _: Unused request message.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        assignment_2_2023.srv.Ave_pos_velResponse: Response message with distance and average velocity.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Ave_pos_velResponse</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">average_velocity</span><span class="p">)</span></div>
+
+<span class="c1"># Function to initialize the ROS service and subscriber</span>
+<div class="viewcode-block" id="initialize_service_and_subscriber"><a class="viewcode-back" href="../../index.html#scripts.node_c.initialize_service_and_subscriber">[docs]</a><span class="k">def</span> <span class="nf">initialize_service_and_subscriber</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Initializes the ROS service for providing distance and average velocity information,</span>
+<span class="sd">    and subscribes to the position and velocity topic.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">Service</span><span class="p">(</span><span class="s2">&quot;info_service&quot;</span><span class="p">,</span> <span class="n">Ave_pos_vel</span><span class="p">,</span> <span class="n">handle_service_request</span><span class="p">)</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="s2">&quot;Service &#39;info_service&#39; is ready.&quot;</span><span class="p">)</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">Subscriber</span><span class="p">(</span><span class="s2">&quot;/pos_vel&quot;</span><span class="p">,</span> <span class="n">msga</span><span class="p">,</span> <span class="n">calculate_distance_and_average_velocity</span><span class="p">)</span></div>
+
+<span class="c1"># Main function</span>
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../index.html#scripts.node_c.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+
+    <span class="n">rospy</span><span class="o">.</span><span class="n">init_node</span><span class="p">(</span><span class="s1">&#39;info_service&#39;</span><span class="p">)</span>
+    <span class="n">initialize_service_and_subscriber</span><span class="p">()</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">spin</span><span class="p">()</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">rt2_Amir_assignment</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2024, Amir Mohammad.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
